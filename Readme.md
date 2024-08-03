@@ -1,6 +1,7 @@
 # Burp Bambdas Cheatsheet
 
 DetectCORS.bambda
+{% capture code %}
 ```java
 /**
  * Check the CORS vulnerability
@@ -17,6 +18,7 @@ if (requestResponse.hasResponse() && requestResponse.request().hasHeader("Origin
     return "";
 }
 ```
+{% endcapture %}
 
 JWTAlgorithm.bambda
 ```java
