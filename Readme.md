@@ -1,7 +1,6 @@
 # Burp Bambdas Cheatsheet
 
 DetectCORS.bambda
-{% capture code %}
 ```java
 /**
  * Check the CORS vulnerability
@@ -18,10 +17,9 @@ if (requestResponse.hasResponse() && requestResponse.request().hasHeader("Origin
     return "";
 }
 ```
-{% endcapture %}
 
 JWTAlgorithm.bambda
-{% capture code %}
+```java
 /**
  * Extracts the JWT alg value from JWT session Cookies
  * @author trikster
@@ -43,7 +41,7 @@ var headerJson = utilities().base64Utils().decode(jwtFrags[0], Base64DecodingOpt
 var matcher = Pattern.compile(".+?\"alg\":\"(\\w+)\".+").matcher(headerJson.toString());
 
 return matcher.matches() ? matcher.group(1) : "";
-{% endcapture %}
+```
 
 Referer.bambda
 ```java
