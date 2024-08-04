@@ -1,4 +1,5 @@
 # Burp Bambdas Cheatsheet
+## A open project that list all the community shared burp bamdbas to directly copy and use them
 
 DetectCORS.bambda
 ```java
