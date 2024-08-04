@@ -619,3 +619,336 @@ if (contentType != null && !contentType.contains("application/json")) {
 
 return false;
 ```
+
+Specific Cookie Value
+```java
+/*
+  Author: PortSwigger (https://portswigger.net)
+  Source:  PortSwigger Blog (https://portswigger.net/blog/introducing-bambdas)
+  Init Pub. Date: Nov 14, 2023
+  Use Case: 
+    Filter for requests with a specific cookie value.
+*/
+
+var request = requestResponse.request();
+var cookie = request.parameter("foo", HttpParameterType.COOKIE);
+
+cookie != null && cookie.value().conatins("1337");
+```
+
+Cachable Responses
+```java
+/*
+  Author: 0x999 (https://x.com/_0x999/)
+  Source:  X/Twitter (https://x.com/_0x999/status/1727072149058535791/photo/2)
+  Init Pub. Date: Nov 22, 2023
+  Use Case: 
+    Filter for responses that contain Cache header to probe for Cache-Poisioning vulnerabilities.
+*/
+
+if(!requestResponse.hasResponse())) {
+  return false;
+}
+
+var headers = requestResponse.response().headers();
+
+for (var header : headers) {
+ if (header.name().toLowerCase().contains("cache") &&
+    (header.value().toLowerCase().contains("hit") || 
+    header.value().toLowerCase().contains("miss"))) {
+    return true;
+  }
+}
+     
+return false;
+```
+
+Incorrect Content-Length
+```java
+/*
+  Author: James Kettle (https://x.com/albinowax)
+  Source: X (Twitter)
+  Init Pub. Date: Oct 17, 2023
+  Use Case: 
+    Filter for responses with incorrect Content-Length.
+*/
+
+if(!requestResponse.hasResponse() || requestResponse.response().hasHeader("Content-Length")) {
+  return false;
+}
+
+int declaredContentLength = Integer.parseInt(requestResponse.response().headerValue("Content-Length"));
+int realContentLength = requestResponse.response().body().length();
+
+return declaredContentLength != realContentLength;
+```
+
+
+JSON Filter
+```java
+/*
+  Author: Gareth Heyes (https://x.com/garethheyes)
+  Source: X (Twitter)
+  Init Pub. Date: Oct 18, 2023
+  Use Case: 
+    Filter for JSON endpoints with an empty or text/html MIME-type
+*/
+
+if(!requestResponse.hasResponse()) {
+  return false;
+}
+
+if(requestResponse.response().hasHeader("Content-Type")) {
+  if(!requestResponse.response().headerValue("Content-Type").contains("text/html")) {
+    return false;
+  }
+}
+
+String body = requestResponse.response().bodyToString().trim();
+boolean looksLikeJson = body.startsWith("{") || body.startsWith("[");
+
+if(!looksLikeJson) {
+  return false;
+}
+
+return true;
+```
+
+JSON with Content-Type Mismatch
+```java
+/*
+  Author: PortSwigger (https://portswigger.net)
+  Source:  PortSwigger Blog (https://portswigger.net/blog/introducing-bambdas)
+  Init Pub. Date: Nov 14, 2023
+  Use Case: 
+    Filter for responses with JSON body but wrong content-type header value set.
+*/
+
+var contentType = requestResponse.response().headerValue("Content-Type");
+
+if (contentType != null && !contentType.contains("application/json")) {
+    String body = requestResponse.response().bodyToString().trim();
+
+    return body.startsWith( "{" ) || body.startsWith( "[" );
+}
+
+return false;
+
+```
+
+JavaScript Files via Content-Type
+```java
+/*
+  Author: Tolgaha (https://x.com/TolgaDemirayak)
+  Source:  X/Twitter (https://x.com/TolgaDemirayak/status/1727074336056783190/)
+  Init Pub. Date: Nov 22, 2023
+  Use Case: 
+    Filter for responses that contain JavaScript based on content-type header value.
+*/
+
+if (!requestResponse.request().isInScope()) {
+  return false;
+}
+
+var contentTypeValue = requestResponse.response().headerValue("Content-Type");
+
+if (contentTypeValue != null) {
+   if (contentTypeValue.contains("application/javascript") &&
+     contentTypeValue.contains("text/javascript") &&
+     contentTypeValue.contains("application/x-javascript")) {
+       return false;
+   }
+}
+
+return true;
+```
+
+Potential Open Redirects 302 Based
+```java
+/*
+  Author: / XNL -н4cĸ3r (https://x.com/xnl_h4ck3r)
+  Source:  X/Twitter (https://x.com/xnl_h4ck3r/status/1724812731008631187/photo/1)
+  Init Pub. Date: Nov 22, 2023
+  Use Case: 
+    Filter for responses that redirect to probe for Open Redirection vulnerabilities.
+  Addl. Info:
+    - If a 302 response has a large body, it could have something useful in there
+    and also potentially be bypassed by matching and replacing "302 Found" with
+    "200 OK" and removing "Location" header from the request.
+    - Reason for counting hrefs: A normal 302 often has a href to the redirect page
+    in case it doesn't redirect. If there's more than 1 href, there's probably other
+    interesting content. It's an extra check just in case the content length is still
+    lower than the value we're looking for.
+*/
+
+if(!requestResponse.hasResponse() && requestResponse.response().statusCode() != 302) {
+  return false;
+}
+
+var response = requestResponse.response();
+var bodyLength = response.body().toString().toLowerCase().replaceAll("<a.*</a>", "").length();
+var numberofHrefs =  response.body().countMatches("href=", false);
+
+return (bodyLength > 1000 || numberOfHrefs > 1);
+```
+
+Redirection with Cookie
+```java
+/*
+  Author: PortSwigger (https://portswigger.net)
+  Source: PortSwigger Docs (https://portswigger.net/burp/documentation/desktop/tools/proxy/http-history/bambdas)
+  Init Pub. Date: Oct 20, 2023
+  Use Case: 
+    Filter for responses that have a 3XX status code and a cookie set with the name session.
+*/
+
+if (!requestResponse.hasResponse()) {
+    return false;
+}
+
+var response = requestResponse.response();
+return response.isStatusCodeClass(StatusCodeClass.CLASS_3XX_REDIRECTION) && response.hasCookie("session");
+
+```
+
+Role Claim in JWT
+```java
+/*
+  Author: PortSwigger (https://portswigger.net)
+  Source:  PortSwigger Blog (https://portswigger.net/blog/introducing-bambdas)
+  Init Pub. Date: Nov 14, 2023
+  Use Case: 
+    Filter for responses with a custom claim - role in a JWT token.
+*/
+
+var body = requestResponse.response().bodyToString().trim();
+
+if (requestResponse.response().hasHeader("authorization")) {
+    var authValue = requestResponse.response().headerValue("authorization");
+
+    if (authValue.startsWith("Bearer ey")) {
+        var tokens = authValue.split("\\.");
+
+        if (tokens.length == 3) {
+            var decodedClaims = utilities().base64Utils().decode(tokens[1], Base64DecodingOptions.URL).toString();
+
+            return decodedClaims.toLowerCase().contains("role");
+        }
+    }
+}
+
+return false;
+```
+
+UID for RCE
+```java
+/*
+  Author: Miguel J. Carmona (https://x.com/mibaltoalexTolgaDemirayak)
+  Source:  X/Twitter (https://x.com//mibaltoalex/status/1728066917875732957/)
+  Init Pub. Date: Nov 24, 2023
+  Use Case: 
+    Filter for JSON responses that contain uid key/property to probe for RCE vulnerability.
+*/
+
+if(requestResponse.mimeType().equals(MimeType.JSON)) {
+  return this.utilities().htmlUtils().decode(requestResponse.response().bodyToString()).contains("uid");
+}
+
+return true;
+```
+
+Coloring
+```java
+/*
+  Author: rtfmkiesel (https://github.com/rtfmkiesel)
+  Source: GitHub
+  Init Pub. Date: Nov 30, 2023
+  Use Case: 
+    Color response based on certain conditions
+*/
+
+/*
+  if (YOUR CONDITION) {
+    requestResponse.annotations().setHighlightColor(HighlightColor.<YOUR COLOR>);
+  }
+*/
+
+// Example: Status Code
+// Make all client errors blue
+if (response.isStatusCodeClass(StatusCodeClass.CLASS_4XX_CLIENT_ERRORS)) {
+	requestResponse.annotations().setHighlightColor(HighlightColor.BLUE);
+}
+// Make all server errors red
+if (response.isStatusCodeClass(StatusCodeClass.CLASS_5XX_SERVER_ERRORS)) {
+	requestResponse.annotations().setHighlightColor(HighlightColor.RED);
+}
+```
+
+Open-redirects
+```java
+/*
+  Author: https://github.com/0x999-x/burpsuite-bambdas
+  Source: GitHub
+  Use Case: 
+    Checks any response with a 3xx response code, if the request contains parameters and they are of type URL and start with (http|https|//) the filter will check if the response's location header matches the parameter value and return true if it does
+*/
+if (!requestResponse.hasResponse()) {
+  return false;
+}
+var response = requestResponse.response();
+if (response.isStatusCodeClass(StatusCodeClass.CLASS_3XX_REDIRECTION)) {
+  var parameters = requestResponse.request().parameters();
+  for (var param : parameters) {
+    if (param.type() != HttpParameterType.URL) {
+      return false;
+    }
+    var decodedParam = utilities().urlUtils().decode(param.value()).toLowerCase();
+    if (decodedParam.startsWith("http") || decodedParam.startsWith("https") || decodedParam.startsWith("//")) {
+      var LocationValue = requestResponse.response().headerValue("Location").toLowerCase();
+      if (LocationValue.startsWith(decodedParam)) {
+        return true;
+      }
+    }
+  }
+}
+return false;
+```
+
+Create a wordlist of unique parameters
+```java
+/*
+  Author: https://github.com/0x999-x/burpsuite-bambdas
+  Source: GitHub
+  Use Case: 
+    Checks every request for parameters of type URL, if any are found and they are unique they will be saved to the path specified in the file variable, the generated file can later be used as a custom wordlist in an extension such as Param Miner
+*/
+var request = requestResponse.request();
+// Parameter Type can be modified to your liking(URL,BODY,JSON,COOKIE,XML)
+if (!request.hasParameters(HttpParameterType.URL)) {
+    return false;
+}
+
+var parameters = request.parameters();
+var uniqueParameters = new HashSet<String>();
+var file = new File("/path/to/output.txt");
+if (!file.exists()) {
+    file.createNewFile();
+}
+
+var reader = new BufferedReader(new FileReader(file));
+var writer = new BufferedWriter(new FileWriter(file, true));
+while (reader.ready()) {
+    uniqueParameters.add(reader.readLine());
+}
+reader.close();
+for (var param : parameters) {
+    // Parameter Type can be modified to your liking(URL,BODY,JSON,COOKIE,XML)
+    if (param.type() == HttpParameterType.URL && !uniqueParameters.contains(param.name())) {
+        writer.write(param.name());
+        writer.newLine();
+    }
+}
+writer.close();
+return true;
+```
+
